@@ -6,6 +6,8 @@ package stackblur
 import (
 	"image"
 	"image/color"
+
+	"github.com/jie123108/imaging"
 )
 
 // blurStack is a linked list containing the color value and a pointer to the next struct.
@@ -58,9 +60,20 @@ func (bs *blurStack) NewBlurStack() *blurStack {
 }
 
 // Process takes an image as parameter and returns it's blurred version by applying the blur radius.
-func Process(src image.Image, radius uint32, done chan struct{}) image.Image {
+func Process(src image.Image, radius uint32, width, height uint32, done chan struct{}) image.Image {
 	var stackEnd, stackIn, stackOut *blurStack
-	var width, height = uint32(src.Bounds().Dx()), uint32(src.Bounds().Dy())
+
+	if width == 0 && height == 0 { // size = src.size
+		width = uint32(src.Bounds().Dx())
+		height = uint32(src.Bounds().Dy())
+	} else if width > 0 && height == 0 { //Zoom in width
+		height = uint32(float32(src.Bounds().Dy()) / float32(src.Bounds().Dx()) * float32(width))
+	} else if height > 0 && width == 0 { //Zoom in height
+		width = uint32(float32(src.Bounds().Dx()) / float32(src.Bounds().Dy()) * float32(height))
+	}
+
+	src = imaging.Resize(src, int(width), int(height), imaging.Lanczos)
+
 	var (
 		div, widthMinus1, heightMinus1, radiusPlus1, sumFactor uint32
 		x, y, i, p, yp, yi, yw,

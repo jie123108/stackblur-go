@@ -1,27 +1,28 @@
 package main
 
 import (
-	"os"
-	"log"
-	"time"
-	"fmt"
 	"flag"
+	"fmt"
 	"image"
-	"image/gif"
-	"image/draw"
 	"image/color/palette"
+	"image/draw"
+	"image/gif"
+	_ "image/jpeg"
 	"image/png"
 	_ "image/png"
-	_ "image/jpeg"
+	"log"
+	"os"
+	"time"
 
-	"github.com/esimov/stackblur-go"
+	stackblur "github.com/jie123108/stackblur-go"
 )
 
 var (
-	source		= flag.String("in", "", "Source")
-	destination	= flag.String("out", "", "Destination")
-	radius 		= flag.Int("radius", 20, "Radius")
-	outputGif	= flag.Bool("gif", false, "Output Gif")
+	source      = flag.String("in", "", "Source")
+	destination = flag.String("out", "", "Destination")
+	radius      = flag.Int("radius", 20, "Radius")
+	resize      = flag.String("resize", "", "Resize: WxH")
+	outputGif   = flag.Bool("gif", false, "Output Gif")
 )
 
 func main() {
@@ -33,6 +34,9 @@ func main() {
 		log.Fatal("Usage: stackblur -in input.jpg -out out.jpg")
 	}
 
+	width, height := uint32(0), uint32(0)
+	_, err := fmt.Sscanf(*resize, "%dx%d", &width, &height)
+
 	img, err := os.Open(*source)
 	defer img.Close()
 
@@ -43,7 +47,7 @@ func main() {
 	start := time.Now()
 	if *outputGif {
 		for i := 1; i <= *radius; i++ {
-			img := stackblur.Process(src, uint32(i), done)
+			img := stackblur.Process(src, uint32(i), width, height, done)
 			fmt.Printf("frame %d/%d\n", i, *radius)
 			go func() {
 				imgs = append(imgs, img)
@@ -58,7 +62,7 @@ func main() {
 			log.Fatal(err)
 		}
 	} else {
-		img := stackblur.Process(src, uint32(*radius), done)
+		img := stackblur.Process(src, uint32(*radius), width, height, done)
 		end := time.Since(start)
 		fmt.Printf("Generated in: %.2fs\n", end.Seconds())
 		generateImage(*destination, img)
